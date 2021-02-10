@@ -12,6 +12,7 @@ import org.mockito.MockitoAnnotations;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
@@ -54,8 +55,8 @@ public class ContaControllerTest {
     }
 
     @Test
-    public void deveLancarUmaException() {
-        Conta conta = new Conta(1L, null, LocalDateTime.now(), LocalDateTime.now().minusDays(2));
+    public void deveLancarUmaExceptionCasoBancoFora() {
+        Conta conta = new Conta(1L, "CEEE", LocalDateTime.now(), LocalDateTime.now().minusDays(2));
         when(contaRepositoryMocked.save(conta)).thenThrow(HandlerExeption.class);
 
         try {
@@ -93,6 +94,32 @@ public class ContaControllerTest {
         assertEquals(contasResponse, contasTeste);
     }
 
+    @Test
+    public void deveRetornarListaDeContasConformeNome(){
+        List<Conta> contasTeste = criaContaParaTeste();
+        String nome = "CEEE";
+        List<Conta> contasContainsNome = contasTeste.stream().filter(conta -> conta.getNome().equals(nome)).collect(Collectors.toList());
+
+        when(contaRepositoryMocked.findByNome(nome)).thenReturn(contasContainsNome);
+
+        List<Conta> contasResponse = contaController.buscaContaPorNome(nome);
+
+        verify(contaRepositoryMocked).findByNome(nome);
+        assertEquals(contasResponse, contasContainsNome);
+    }
+
+    @Test
+    public void deveRetornarListaDeContasCasoNomeNulo(){
+        List<Conta> contasTeste = criaContaParaTeste();
+        String nome = null;
+
+        when(contaRepositoryMocked.findByNome(nome)).thenReturn(contasTeste);
+
+        List<Conta> contasResponse = contaController.buscaContaPorNome(nome);
+
+        verify(contaRepositoryMocked).findByNome(nome);
+        assertEquals(contasResponse, contasTeste);
+    }
     public List<Conta> criaContaParaTeste() {
         List<Conta> contas = new ArrayList<>();
 

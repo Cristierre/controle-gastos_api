@@ -11,4 +11,5 @@ import java.util.List;
 public interface ContaRepository extends JpaRepository<Conta, Long> {
      List<Conta> findAll();
      List<Conta> findByDataEmissaoContains(LocalDateTime dataVencimento);
+     List<Conta> findByNome(String nome);
 }
