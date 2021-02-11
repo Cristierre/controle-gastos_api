@@ -1,6 +1,7 @@
 package com.controlegastos.controlegastosapi;
 
 import com.controlegastos.controlegastosapi.controller.ContaController;
+import com.controlegastos.controlegastosapi.controller.dto.ContaDto;
 import com.controlegastos.controlegastosapi.model.Conta;
 import com.controlegastos.controlegastosapi.repository.ContaRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,7 +16,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class ContaControllerTest {
 
@@ -31,27 +33,35 @@ public class ContaControllerTest {
         this.contaController = new ContaController(contaRepositoryMocked);
     }
 
+    //TODO resolver validção de insteancias de listas diferentes com JUNIT
     @Test
     public void deveRetornarUmaListDeContas() {
         List<Conta> contasTeste = criaContaParaTeste();
+        List<ContaDto> contasDtosTeste = new ArrayList<>();
+
+        contasTeste.forEach(conta -> contasDtosTeste.add(new ContaDto(conta)));
+
         when(contaRepositoryMocked.findAll()).thenReturn(contasTeste);
 
-        List<Conta> contas = contaController.buscaContas();
+        List<ContaDto> contasDto = contaController.buscaContas();
 
         verify(contaRepositoryMocked).findAll();
-        assertEquals(contasTeste, contas);
+        assertEquals(contasDtosTeste, contasDto);
     }
 
     @Test
     public void deveInserirContaNoBanco() {
         Conta conta = new Conta(1L, "CEEE", LocalDateTime.now(), LocalDateTime.now().minusDays(2));
+        ContaDto contaDto = new ContaDto(conta);
         when(contaRepositoryMocked.save(conta)).thenReturn(conta);
 
-        Conta contaPersistida = contaController.novaConta(conta);
+        ContaDto contaPersistida = contaController.novaConta(conta);
 
         verify(contaRepositoryMocked).save(conta);
 
-        assertEquals(conta, contaPersistida);
+        assertEquals(contaDto.getNome(), contaPersistida.getNome());
+        assertEquals(contaDto.getDataEmissao(), contaPersistida.getDataEmissao());
+        assertEquals(contaDto.getDataVencimento(), contaPersistida.getDataVencimento());
     }
 
     @Test
@@ -60,7 +70,7 @@ public class ContaControllerTest {
         when(contaRepositoryMocked.save(conta)).thenThrow(HandlerExeption.class);
 
         try {
-            System.out.println(contaController.novaConta(conta).toString());
+            contaController.novaConta(conta);
             verify(contaRepositoryMocked).save(conta);
         } catch (HandlerExeption exception) {
         }
@@ -71,38 +81,46 @@ public class ContaControllerTest {
         List<Conta> contasTeste = criaContaParaTeste();
         contasTeste.remove(0);
 
+        List<ContaDto> contasDtosTeste = new ArrayList<>();
+
+        contasTeste.forEach(conta -> contasDtosTeste.add(new ContaDto(conta)));
+
         LocalDateTime data = LocalDateTime.now();
 
         when(contaRepositoryMocked.findByDataEmissaoContains(data)).thenReturn(contasTeste);
 
-        List<Conta> contasResponse = contaController.buscaContaPorDataDeEmissao(data);
+        List<ContaDto> contasResponse = contaController.buscaContaPorDataDeEmissao(data);
 
         verify(contaRepositoryMocked).findByDataEmissaoContains(data);
-        assertEquals(contasResponse, contasTeste);
+        assertEquals(contasResponse, contasDtosTeste);
     }
 
     @Test
     public void deveRetornarTodasAsContasQuandoDataNula(){
         List<Conta> contasTeste = criaContaParaTeste();
 
+        List<ContaDto> contasDtosTeste = new ArrayList<>();
+
+        contasTeste.forEach(conta -> contasDtosTeste.add(new ContaDto(conta)));
         when(contaRepositoryMocked.findByDataEmissaoContains(null)).thenReturn(contasTeste);
 
-        List<Conta> contasResponse = contaController.buscaContaPorDataDeEmissao(null);
+        List<ContaDto> contasResponse = contaController.buscaContaPorDataDeEmissao(null);
 
         verify(contaRepositoryMocked).findAll();
 
-        assertEquals(contasResponse, contasTeste);
+        assertEquals(contasResponse, contasDtosTeste);
     }
 
     @Test
     public void deveRetornarListaDeContasConformeNome(){
         List<Conta> contasTeste = criaContaParaTeste();
+
         String nome = "CEEE";
         List<Conta> contasContainsNome = contasTeste.stream().filter(conta -> conta.getNome().equals(nome)).collect(Collectors.toList());
 
         when(contaRepositoryMocked.findByNome(nome)).thenReturn(contasContainsNome);
 
-        List<Conta> contasResponse = contaController.buscaContaPorNome(nome);
+        List<ContaDto> contasResponse = contaController.buscaContaPorNome(nome);
 
         verify(contaRepositoryMocked).findByNome(nome);
         assertEquals(contasResponse, contasContainsNome);
@@ -113,12 +131,23 @@ public class ContaControllerTest {
         List<Conta> contasTeste = criaContaParaTeste();
         String nome = null;
 
+        List<ContaDto> contasDtosTeste = new ArrayList<>();
+
+        contasTeste.forEach(conta -> contasDtosTeste.add(new ContaDto(conta)));
         when(contaRepositoryMocked.findByNome(nome)).thenReturn(contasTeste);
 
-        List<Conta> contasResponse = contaController.buscaContaPorNome(nome);
+        List<ContaDto> contasResponse = contaController.buscaContaPorNome(nome);
 
         verify(contaRepositoryMocked).findByNome(nome);
-        assertEquals(contasResponse, contasTeste);
+        assertEquals(contasResponse, contasDtosTeste);
+    }
+
+    @Test
+    public void deveDeletarUmElementoDoBancoDeDados(){
+        List<Conta> contasTeste = criaContaParaTeste();
+        contasTeste.remove(0);
+        contaController.deletaPorIdConta(1L);
+        verify(contaRepositoryMocked).deleteById(1L);
     }
     public List<Conta> criaContaParaTeste() {
         List<Conta> contas = new ArrayList<>();
